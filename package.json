@@ -3,11 +3,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src"
+    "build": "tsup src/index.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.6",
-    "hono": "^4.6.9"
+    "@hono/zod-validator": "^0.4.1",
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.5",
+    "hono": "^4.6.9",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@rocketseat/eslint-config": "^2.2.2",
