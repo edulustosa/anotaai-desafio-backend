@@ -8,3 +8,12 @@ export async function findUserById(id: string) {
     return null
   }
 }
+
+export async function findProductById(id: string) {
+  try {
+    const product = await prisma.product.findUnique({ where: { id } })
+    return product
+  } catch {
+    return null
+  }
+}
