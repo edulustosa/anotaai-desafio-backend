@@ -1,24 +1,20 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { logger } from 'hono/logger'
+
 import env from './env'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
 
-const app = new Hono()
+import product from './http/routes/product'
+import user from './http/routes/user'
+import category from './http/routes/category'
 
-app.post(
-  '/product',
-  zValidator(
-    'json',
-    z.object({
-      title: z.string().min(1),
-      ownerId: z.string().min(1),
-    }),
-  ),
-  (c) => {
-    return c.text('Hello Hono!')
-  },
-)
+const app = new Hono().basePath('/api')
+
+app.use(logger())
+
+app.route('/product', product)
+app.route('/user', user)
+app.route('/category', category)
 
 const port = env.PORT
 console.log(`Server is running on http://localhost:${port}`)
