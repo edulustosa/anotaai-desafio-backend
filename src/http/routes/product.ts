@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { findUserById } from '@/database/product'
 import { findCategoryById } from '@/database/category'
 import prisma from '@/lib/prisma'
+import { publishSNSMessage } from '@/aws/sns'
+import env from '@/env'
 
 const product = new Hono()
 
@@ -27,11 +29,95 @@ product.post(
   async (c) => {
     const data = c.req.valid('json')
 
-    const createdCategory = await prisma.product.create({
+    const createdProduct = await prisma.product.create({
       data,
     })
 
-    return c.json(createdCategory, 201)
+    console.log(env.AWS_SNS_TOPIC_CATALOG_ARN)
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId: createdProduct.ownerId,
+    })
+
+    return c.json(createdProduct, 201)
+  },
+)
+
+product.get(
+  '/:ownerId',
+  zValidator(
+    'param',
+    z.object({
+      ownerId: z.string(),
+    }),
+  ),
+  async (c) => {
+    const { ownerId } = c.req.valid('param')
+
+    const products = await prisma.product.findMany({
+      where: {
+        ownerId,
+      },
+    })
+
+    return c.json(products)
+  },
+)
+
+product.put(
+  '/:productId',
+  zValidator('param', z.object({ productId: z.string() })),
+  zValidator(
+    'json',
+    z.object({
+      title: z.string().optional(),
+      description: z.string().optional(),
+      price: z.number().optional(),
+      ownerId: z
+        .string()
+        .refine(findUserById, {
+          message: 'user not found',
+        })
+        .optional(),
+      categoryId: z
+        .string()
+        .refine(findCategoryById, {
+          message: 'user not found',
+        })
+        .optional(),
+    }),
+  ),
+  async (c) => {
+    const { productId } = c.req.valid('param')
+    const data = c.req.valid('json')
+
+    const updatedProduct = await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data,
+    })
+
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId: updatedProduct.ownerId,
+    })
+
+    return c.json(updatedProduct)
+  },
+)
+
+product.delete(
+  '/:productId',
+  zValidator('param', z.object({ productId: z.string() })),
+  async (c) => {
+    const { productId } = c.req.valid('param')
+
+    await prisma.product.delete({
+      where: {
+        id: productId,
+      },
+    })
+
+    return c.json({ message: 'Product deleted' })
   },
 )
 
