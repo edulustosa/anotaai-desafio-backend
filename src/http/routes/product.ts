@@ -34,7 +34,7 @@ product.post(
     })
 
     publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
-      ownerId: createdProduct.ownerId,
+      ownerId: data.ownerId,
     })
 
     return c.json(createdProduct, 201)
