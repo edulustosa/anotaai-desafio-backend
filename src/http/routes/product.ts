@@ -33,7 +33,6 @@ product.post(
       data,
     })
 
-    console.log(env.AWS_SNS_TOPIC_CATALOG_ARN)
     publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
       ownerId: createdProduct.ownerId,
     })
