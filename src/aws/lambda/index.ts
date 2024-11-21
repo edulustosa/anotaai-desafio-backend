@@ -1,5 +1,14 @@
 import { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Db, MongoClient, ObjectId } from 'mongodb'
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+  },
+})
 
 export const handler: SQSHandler = async (event: SQSEvent) => {
   for (const message of event.Records) {
@@ -20,7 +29,8 @@ async function processMessage(message: SQSRecord) {
   try {
     const ownerId = getOwnerIdFromBody(message.body)
     const catalog = await getCatalog(db, ownerId)
-    console.log(catalog)
+
+    await uploadCatalogToS3(catalog, ownerId)
   } catch (err) {
     console.error(err)
   } finally {
@@ -45,6 +55,24 @@ interface Catalog {
       price: number
     }[]
   }[]
+}
+
+async function uploadCatalogToS3(catalog: Catalog, ownerId: string) {
+  const catalogJSON = JSON.stringify(catalog)
+  const fileName = `catalog-${ownerId}.json`
+
+  try {
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET as string,
+        Key: fileName,
+        Body: catalogJSON,
+        ContentType: 'application/json',
+      }),
+    )
+  } catch (err) {
+    console.error('failed to upload bucket', err)
+  }
 }
 
 async function getCatalog(db: Db, ownerId: string) {
