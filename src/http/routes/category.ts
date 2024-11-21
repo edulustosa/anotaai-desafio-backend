@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { findUserById } from '@/database/product'
 import prisma from '@/lib/prisma'
 import { findCategoryById } from '@/database/category'
+import { publishSNSMessage } from '@/aws/sns'
+import env from '@/env'
 
 const category = new Hono()
 
@@ -29,6 +31,10 @@ category.post(
         description,
         ownerId,
       },
+    })
+
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId,
     })
 
     return c.json(createdCategory, 201)
@@ -85,6 +91,10 @@ category.put(
       data: body,
     })
 
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId: category.ownerId,
+    })
+
     return c.json(category)
   },
 )
@@ -111,10 +121,14 @@ category.delete(
       },
     })
 
-    await prisma.category.delete({
+    const deletedCategory = await prisma.category.delete({
       where: {
         id: categoryId,
       },
+    })
+
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId: deletedCategory.ownerId,
     })
 
     return c.json({ message: 'category deleted' })

@@ -110,10 +110,14 @@ product.delete(
   async (c) => {
     const { productId } = c.req.valid('param')
 
-    await prisma.product.delete({
+    const deletedProduct = await prisma.product.delete({
       where: {
         id: productId,
       },
+    })
+
+    publishSNSMessage(env.AWS_SNS_TOPIC_CATALOG_ARN, {
+      ownerId: deletedProduct.ownerId,
     })
 
     return c.json({ message: 'Product deleted' })
